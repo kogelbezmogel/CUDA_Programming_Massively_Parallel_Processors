@@ -1,0 +1,60 @@
+#include <iostream>
+#include <stdio.h>
+#include "RandomIntGenerator.h"
+
+#define BLOCK 8
+
+__global__ void histogram_basic(int *A, int *H, int N);
+
+int main() {
+
+    int *A_h, *A_d, *H_h, *H_d;
+    int N = 100;
+
+    A_h = new int[N];
+    H_h = new int[10];
+
+    cudaMalloc((void**) &A_d, sizeof(int) * N);
+    cudaMalloc((void**) &H_d, sizeof(int) * 10);
+
+    RandomIntGenerator generator(967, 0, 10);
+
+    for(int i = 0; i < N; ++i) {
+        A_h[i] = generator();
+    }
+
+    cudaMemcpy(A_d, A_h, sizeof(int) * N, cudaMemcpyHostToDevice);
+    cudaMemcpy(H_d, H_h, sizeof(int) * 10, cudaMemcpyHostToDevice);
+
+    dim3 grid_size( (N + BLOCK) / BLOCK);
+    dim3 block_size(BLOCK);
+    histogram_basic<<<grid_size, block_size>>>(A_d, H_d, N);
+
+    cudaMemcpy(H_h, H_d, sizeof(int) * 10, cudaMemcpyDeviceToHost);
+
+    for(int i = 0; i < N; ++i) {
+        printf("%d ", A_h[i]);
+    }
+    printf("\n");
+    for(int i = 0; i < 10; ++i) {
+        printf("%d ", H_h[i]);
+    }
+
+    delete [] A_h;
+    delete [] H_h;
+    cudaFree(A_d);
+    cudaFree(H_d);
+
+    return 0;
+}
+
+
+__global__ void histogram_basic(int *A, int *H, int N) {
+    int slice_start = blockIdx.x * blockDim.x;
+    int id = slice_start + threadIdx.x;
+
+    if(id < N) {
+        int bin_id = A[id];
+        atomicAdd(H + bin_id, 1);
+    }
+}

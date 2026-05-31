@@ -1,0 +1,52 @@
+Files with extension .cu are compiled with c++ compiler by nvcc
+Files with extension .c are compiled as normal c files with gcc
+When mixing both like including .cu function in main.c file the problem name mangling occurs.
+To prevent it one need to use extern "C" before function declaration and definition in .h and then .cu file.
+Or you can write main.cpp file istead of main.c
+To detect if you compiling with cpp compiler there is a preprocessor macro __cplusplus if it is defined then program will know
+for example:
+
+#idef __cplusplus
+extern "C" {
+#endif
+
+void someFunc(args);
+
+#idef __cplusplus
+    }
+#endif
+
+This macro will add extern "C" to c function declaration or definition to treat it as c function.
+
+
+
+()How to compile using gcc against cuda and libng
+
+    While using gcc user needs to link against all the libraries manually
+    First step is to make object files
+
+    gcc  -c main.c -o main.o
+    nvcc -c blur.cu -o blur.o
+
+    second step is to link everything together and work with cpp compiled blur
+    gcc -o app main.o blur.o -L(cuda_path)/lib64 -lcudart -lpng -lstdc++ -Wl,-rpath=(cuda_path)/lib64
+    
+    to break it down
+    -L(cuda_path)/lib64 - This adds path to the linker to lookhtrough during compilation and affects only compilation. The linker know where to look while resolving -l(lib)
+
+    -Wl,-rpath=... - This tells the loader where to look for shared libraries during execution. It embeds the path into execution 
+    Alternativelly you could set LD_LIBRARY_PATH=... as eniviroment variable before execution 
+    
+    -lcudart - This is a cudaruntime library
+    
+    -lpng - This is library to work with png files
+    
+    -lstdc++ - This is because blur.o is compiled as cpp file. With this command gcc will treat
+    it as normal c file but as long as blur doesnt use cpp features like classes etc.
+
+    [!!! The diffrence between libpng and cuda is that cuda is installed in non-standard location
+         while libpng in standard location that is why loader know how to find it.               !!!]
+    To check location of .so libs linked to executable use -> ldd ./main
+    To check lib location use -> ldconfid -p | grep libpng
+
+()How to compile using nvcc
