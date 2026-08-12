@@ -1,6 +1,6 @@
 CC = nvcc
 OBJECTS = main_matrix_multiplication.o matrix_multiplication.o matrix_multiplication_tiled.o
-BIN = main_matrix_mul 
+BIN = main_matrix_mul.out
 
 all:$(BIN)
 

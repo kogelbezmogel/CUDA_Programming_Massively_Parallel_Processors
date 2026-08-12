@@ -24,6 +24,6 @@ void __global__ matrix_multiplication(float *A, float *B, float *C, int N, int K
     }
 
     if(row < N && col < M) {
-        A[row * M + col] = sum;
+        C[row * M + col] = sum;
     }
 }
