@@ -45,9 +45,10 @@ __global__ void kernel_simple(float *A, float *B, float *C, int N, int K, int M)
         for(int i = 0; i < TILE_SIZE; ++i) {
             value += A_tile[ty][i] * B_tile[i][tx];
         }
-        C[row * M + col] = value;
         __syncthreads();
     }
+
+    C[row * M + col] = value;
 }
 
 

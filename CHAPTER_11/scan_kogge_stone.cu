@@ -39,9 +39,7 @@ int main() {
 
 
 __global__ void scan_kogge_stone(float *A, float *B, int N) {
-
     __shared__ float AB[BLOCK];
-
 
     if(threadIdx.x < N) {
         AB[threadIdx.x] = A[threadIdx.x];
@@ -59,7 +57,6 @@ __global__ void scan_kogge_stone(float *A, float *B, int N) {
         __syncthreads();
         AB[threadIdx.x] = temp;
     }
-
 
     if(threadIdx.x < N) {
         B[threadIdx.x] = AB[threadIdx.x];
