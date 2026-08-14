@@ -4,15 +4,16 @@
 #include "../UTILS/matrix_multiplication.h"
 #include "matrix_multiplication.cuh"
 #include "matrix_multiplication_tiled.cuh"
+#include "matrix_multiplication_coarsed.cuh"
 
 
 // here will be whole perfomance analysis code 
 
 int main() {
 
-    int N = 4;
+    int N = 8;
     int K = 8;
-    int M = 6;
+    int M = 8;
 
     float *A_h, *B_h, *C_h, *A_d, *B_d, *C_d, *C_t;
 
@@ -37,7 +38,7 @@ int main() {
     dim3 grid_size((M+BLOCK-1) / BLOCK, (N+BLOCK-1) / BLOCK, 1);
     dim3 block_size(BLOCK, BLOCK, 1);
     
-    matrix_multiplication_tiled<<<grid_size, block_size>>>(A_d, B_d, C_d, N, K, M);
+    matrix_multiplication_coarsed<<<grid_size, block_size>>>(A_d, B_d, C_d, N, K, M);
 
     cudaMemcpy(C_h, C_d, N * M * sizeof(float), cudaMemcpyDeviceToHost);
 
