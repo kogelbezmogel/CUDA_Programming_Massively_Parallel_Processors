@@ -2,8 +2,19 @@
 
 #include <stdio.h>
 
-#define CFACTOR 2
-#define TILE 4
+#define CFACTOR 4
+#define TILE 16
+
+
+/*
+Kernel statistics:
+    8*TILE*TILE B shared memory per block
+    21 Registers per thread
+*/
+
+
+
+
 
 void __global__ matrix_multiplication_coarsed(float *A, float *B, float *C, int N, int K, int M) {
     /*

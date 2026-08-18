@@ -1,13 +1,14 @@
-#define BLOCK 4
+#define BLOCK 32
 
 #include "../UTILS/utils.h"
 #include "../UTILS/matrix_multiplication.h"
-#include "matrix_multiplication.cuh"
-#include "matrix_multiplication_tiled.cuh"
+// #include "matrix_multiplication.cuh"
+// #include "matrix_multiplication_tiled.cuh"
 #include "matrix_multiplication_coarsed.cuh"
 
 // #include <vector>
 // #include <unordered_map>
+#include <cmath>
 
 
 // here will be whole perfomance analysis code 
@@ -22,6 +23,7 @@ int main() {
     int shmem_per_sm;
     int threa_per_sm;
     int warp_size;
+    int sms;
 
     cudaDeviceGetAttribute(&regis_per_block, cudaDevAttrMaxRegistersPerBlock, device);
     cudaDeviceGetAttribute(&shmem_per_block, cudaDevAttrMaxSharedMemoryPerBlock, device);
@@ -30,6 +32,7 @@ int main() {
     cudaDeviceGetAttribute(&shmem_per_sm, cudaDevAttrMaxSharedMemoryPerMultiprocessor, device);
     cudaDeviceGetAttribute(&threa_per_sm, cudaDevAttrMaxThreadsPerMultiProcessor, device);
     cudaDeviceGetAttribute(&warp_size, cudaDevAttrWarpSize, device);
+    cudaDeviceGetAttribute(&sms, cudaDevAttrMultiProcessorCount, device);
 
     printf("GPU ------------------------\n");
     printf("Max registers per block:     %6d floats\n", regis_per_block);
@@ -39,10 +42,17 @@ int main() {
     printf("Max threads per block:       %6d threads\n", threa_per_block);
     printf("Max threads per sm:          %6d threads\n", threa_per_sm);
     printf("Warp size:                   %6d threads\n", warp_size);
-    
-    // int N = 8;
-    // int K = 8;
-    // int M = 8;
+    printf("Amount of SMs:               %6d\n\n", sms);
+
+    int N = 512;
+    int K = N;
+    int M = N;
+
+    // calulating CFACTOR
+    int cfactor = std::ceil((N * M) / (sms * threa_per_sm));
+    printf("CFACTOR: %d\n", cfactor);
+    printf("Maximum blocks per sm according to shmem usage:     %d\n", (int) std::floor(shmem_per_sm / (2 * BLOCK * BLOCK * sizeof(float))));
+    printf("Maximum blocks per sm according to registers usage: %d\n", (int) std::floor(regis_per_sm / (BLOCK * BLOCK * 21)));
 
     // float *A_h, *B_h, *C_h, *A_d, *B_d, *C_d, *C_t;
 
