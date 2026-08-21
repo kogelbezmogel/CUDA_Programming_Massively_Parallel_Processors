@@ -43,6 +43,7 @@ int main() {
     printf("Max threads per sm:          %6d threads\n", threa_per_sm);
     printf("Warp size:                   %6d threads\n", warp_size);
     printf("Amount of SMs:               %6d\n\n", sms);
+    printf("test");
 
     int N = 512;
     int K = N;
