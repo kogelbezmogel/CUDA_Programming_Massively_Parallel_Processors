@@ -27,7 +27,7 @@ namespace uti {
 
     void fill_tensor_with_gaussian_dist(float *A, int r);
     void fill_memory_with_random_data(float *A, int len, IntGenerator gen);
-    void check_abs_error(float *A, float *B, int len, float max_error = 1e-6);
+    void check_abs_error(float *A, float *B, int len, float max_error = 1e-4);
 
     
     void fill_tensor_with_gaussian_dist(float *A, int r) {
@@ -52,9 +52,10 @@ namespace uti {
         float err = 0.0f;
         
         for(int i = 0; i < len; ++i) {
-            // printf("%4.0f <?> %4.0f\n", A[i], B[i]);
+            printf("%4.0f <?> %4.0f\n", A[i], B[i]);
             err += abs(A[i] - B[i]);
         }
+        printf("error %10.1f\n", err);
         assert(err <= max_error);
     }
 

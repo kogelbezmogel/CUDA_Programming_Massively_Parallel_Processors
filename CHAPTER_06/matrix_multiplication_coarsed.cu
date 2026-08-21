@@ -2,21 +2,21 @@
 
 #include <stdio.h>
 
-#define CFACTOR 4
-#define TILE 16
+#define MAX_CFACTOR 16
+#define TILE 4
 
 
 /*
 Kernel statistics:
     8*TILE*TILE B shared memory per block
-    21 Registers per thread
+    23 Registers per thread
 */
 
 
 
 
 
-void __global__ matrix_multiplication_coarsed(float *A, float *B, float *C, int N, int K, int M) {
+void __global__ matrix_multiplication_coarsed(float *A, float *B, float *C, int N, int K, int M, int cf) {
     /*
         The choice of this implementaion of
         coarsing is to serialise loading matrix B
@@ -24,12 +24,11 @@ void __global__ matrix_multiplication_coarsed(float *A, float *B, float *C, int 
     __shared__ float A_tile[TILE][TILE];
     __shared__ float B_tile[TILE][TILE];
 
-    float temp_values[CFACTOR];
+    float temp_values[MAX_CFACTOR];
 
     int row = blockDim.y * blockIdx.y + threadIdx.y;
-    int col = blockDim.x * blockIdx.x + threadIdx.x;
 
-    for(int i = 0; i < CFACTOR; ++i) {
+    for(int i = 0; i < cf; ++i) {
         temp_values[i] = 0.0f;
     }
 
@@ -42,27 +41,37 @@ void __global__ matrix_multiplication_coarsed(float *A, float *B, float *C, int 
             A_tile[threadIdx.y][threadIdx.x] = 0.0f;
         }
 
-
-        for(int coarse = 0; coarse < CFACTOR; ++coarse) {
+        for(int coarse = 0; coarse < cf; ++coarse) {
 
             // loading B_tile 
-            if(threadIdx.y + phase * blockDim.y < K && col + coarse * blockDim.x < M) {
-                B_tile[threadIdx.y][threadIdx.x] = B[(threadIdx.y + phase * blockDim.y) * M + col + coarse * blockDim.x];
+            /*
+                Each block computes
+                    blockDim.x * cf     values (horizontally)
+                    blockDim.y          values (vertically)
+
+                Each thread in block computes cf values. Each value is in the
+                same row but separeted BlockDim.x columns from previous one
+
+                That is why value are being loaded from range
+                [blockId.x * blockDim.x * cf;   (blockId.x+1) * blockDim.x * cf - 1]
+            */
+            if(threadIdx.y + phase * blockDim.y < K && (blockIdx.x * cf + coarse) * blockDim.x + threadIdx.x < M) {
+                B_tile[threadIdx.y][threadIdx.x] = B[(threadIdx.y + phase * blockDim.y) * M + (blockIdx.x * cf + coarse) * blockDim.x + threadIdx.x];
             } else {
                 B_tile[threadIdx.y][threadIdx.x] = 0.0f;
             } 
             __syncthreads();
 
-            for(int k = 0; k < K; ++k) {
+            for(int k = 0; k < TILE; ++k) {
                 temp_values[coarse] += A_tile[threadIdx.y][k] * B_tile[k][threadIdx.x];
             }
             __syncthreads();
         }
     }
 
-    for(int coarse = 0; coarse < CFACTOR; ++coarse) {
-        if(row < N && col + coarse * TILE < M) {
-            C[row * M + col + coarse * TILE] = temp_values[coarse];
+    for(int coarse = 0; coarse < cf; ++coarse) {
+        if(row < N && (blockIdx.x * cf + coarse) * blockDim.x + threadIdx.x < M) {
+            C[row * M + (blockIdx.x * cf + coarse) * blockDim.x + threadIdx.x] = temp_values[coarse];
         }
     }
 
