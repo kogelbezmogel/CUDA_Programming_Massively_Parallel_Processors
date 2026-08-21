@@ -1,4 +1,4 @@
-#define BLOCK 4
+#define BLOCK 32
 
 #include "../UTILS/utils.h"
 #include "../UTILS/matrix_multiplication.h"
@@ -44,13 +44,18 @@ int main() {
     printf("Warp size:                   %6d threads\n", warp_size);
     printf("Amount of SMs:               %6d\n\n", sms);
 
-    int N = 16;
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+
+
+
+    int N = 1024;
     int K = N;
     int M = N;
 
     // calulating CFACTOR
     int cfactor = std::ceil((float) (N * M) / (sms * threa_per_sm));
-    cfactor = 2;
     printf("CFACTOR: %d\n", cfactor);
     printf("Maximum blocks per sm according to shmem usage:     %d\n", (int) std::floor(shmem_per_sm / (2 * BLOCK * BLOCK * sizeof(float))));
     printf("Maximum blocks per sm according to registers usage: %d\n", (int) std::floor(regis_per_sm / (BLOCK * BLOCK * 21)));
@@ -78,11 +83,19 @@ int main() {
     dim3 grid_size((M + cfactor*BLOCK-1) / (cfactor*BLOCK), (N+BLOCK-1) / BLOCK, 1);
     dim3 block_size(BLOCK, BLOCK, 1);
     
+    cudaDeviceSynchronize();
+    cudaEventRecord(start);
     matrix_multiplication_coarsed<<<grid_size, block_size>>>(A_d, B_d, C_d, N, K, M, cfactor);
-
+    cudaDeviceSynchronize();
+    cudaEventRecord(stop);
+    
     cudaMemcpy(C_h, C_d, N * M * sizeof(float), cudaMemcpyDeviceToHost);
-
     uti::check_abs_error(C_h, C_t, N*M);
+
+    float mseconds;
+    cudaEventElapsedTime(&mseconds, start, stop);
+    printf("Time elasped: %f seconds\n", mseconds/1000);
+
 
     delete A_h;
     delete B_h;

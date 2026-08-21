@@ -52,10 +52,10 @@ namespace uti {
         float err = 0.0f;
         
         for(int i = 0; i < len; ++i) {
-            printf("%4.0f <?> %4.0f\n", A[i], B[i]);
+            // printf("%4.0f <?> %4.0f\n", A[i], B[i]);
             err += abs(A[i] - B[i]);
         }
-        printf("error %10.1f\n", err);
+        // printf("error %10.1f\n", err);
         assert(err <= max_error);
     }
 

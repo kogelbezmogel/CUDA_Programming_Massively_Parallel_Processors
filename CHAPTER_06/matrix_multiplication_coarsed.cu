@@ -2,14 +2,14 @@
 
 #include <stdio.h>
 
-#define MAX_CFACTOR 16
-#define TILE 4
+#define MAX_CFACTOR 64
+#define TILE 32
 
 
 /*
 Kernel statistics:
     8*TILE*TILE B shared memory per block
-    23 Registers per thread
+    22 Registers per thread
 */
 
 
