@@ -3,7 +3,7 @@
 #include <iostream>
 #include "stdio.h"
 
-#define TILE 4
+#define TILE 32
 
 void __global__ matrix_multiplication_tiled(float *A, float *B, float *C, int N, int K, int M) {
     float __shared__ A_tile[TILE][TILE];

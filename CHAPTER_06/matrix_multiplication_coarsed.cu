@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 
-#define MAX_CFACTOR 64
+#define MAX_CFACTOR 756
 #define TILE 32
 
 
@@ -11,8 +11,6 @@ Kernel statistics:
     8*TILE*TILE B shared memory per block
     22 Registers per thread
 */
-
-
 
 
 
@@ -41,7 +39,7 @@ void __global__ matrix_multiplication_coarsed(float *A, float *B, float *C, int 
             A_tile[threadIdx.y][threadIdx.x] = 0.0f;
         }
 
-        for(int coarse = 0; coarse < cf; ++coarse) {
+        for(int coarse_step = 0; coarse_step < cf; ++coarse_step) {
 
             // loading B_tile 
             /*
@@ -55,23 +53,23 @@ void __global__ matrix_multiplication_coarsed(float *A, float *B, float *C, int 
                 That is why value are being loaded from range
                 [blockId.x * blockDim.x * cf;   (blockId.x+1) * blockDim.x * cf - 1]
             */
-            if(threadIdx.y + phase * blockDim.y < K && (blockIdx.x * cf + coarse) * blockDim.x + threadIdx.x < M) {
-                B_tile[threadIdx.y][threadIdx.x] = B[(threadIdx.y + phase * blockDim.y) * M + (blockIdx.x * cf + coarse) * blockDim.x + threadIdx.x];
+            if(threadIdx.y + phase * blockDim.y < K && blockIdx.x * blockDim.x * cf + coarse_step * blockDim.x + threadIdx.x < M) {
+                B_tile[threadIdx.y][threadIdx.x] = B[(threadIdx.y + phase * blockDim.y) * M + blockIdx.x * blockDim.x * cf + coarse_step * blockDim.x + threadIdx.x];
             } else {
                 B_tile[threadIdx.y][threadIdx.x] = 0.0f;
             } 
             __syncthreads();
 
             for(int k = 0; k < TILE; ++k) {
-                temp_values[coarse] += A_tile[threadIdx.y][k] * B_tile[k][threadIdx.x];
+                temp_values[coarse_step] += A_tile[threadIdx.y][k] * B_tile[k][threadIdx.x];
             }
             __syncthreads();
         }
     }
 
-    for(int coarse = 0; coarse < cf; ++coarse) {
-        if(row < N && (blockIdx.x * cf + coarse) * blockDim.x + threadIdx.x < M) {
-            C[row * M + (blockIdx.x * cf + coarse) * blockDim.x + threadIdx.x] = temp_values[coarse];
+    for(int coarse_step = 0; coarse_step < cf; ++coarse_step) {
+        if(row < N && blockIdx.x * blockDim.x * cf + coarse_step * blockDim.x + threadIdx.x < M) {
+            C[row * M + blockIdx.x * blockDim.x * cf + coarse_step * blockDim.x + threadIdx.x] = temp_values[coarse_step];
         }
     }
 
