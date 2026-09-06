@@ -2,9 +2,8 @@
 
 #include <stdio.h>
 
-#define MAX_CFACTOR 756
+#define MAX_CFACTOR 16
 #define TILE 32
-
 
 /*
 Kernel statistics:
@@ -23,6 +22,7 @@ void __global__ matrix_multiplication_coarsed(float *A, float *B, float *C, int 
     __shared__ float B_tile[TILE][TILE];
 
     float temp_values[MAX_CFACTOR];
+    float temp;
 
     int row = blockDim.y * blockIdx.y + threadIdx.y;
 
@@ -40,9 +40,9 @@ void __global__ matrix_multiplication_coarsed(float *A, float *B, float *C, int 
         }
 
         for(int coarse_step = 0; coarse_step < cf; ++coarse_step) {
-
-            // loading B_tile 
             /*
+                loading B_tile 
+    
                 Each block computes
                     blockDim.x * cf     values (horizontally)
                     blockDim.y          values (vertically)
@@ -60,9 +60,11 @@ void __global__ matrix_multiplication_coarsed(float *A, float *B, float *C, int 
             } 
             __syncthreads();
 
+            temp = 0.0f;
             for(int k = 0; k < TILE; ++k) {
-                temp_values[coarse_step] += A_tile[threadIdx.y][k] * B_tile[k][threadIdx.x];
+                temp += A_tile[threadIdx.y][k] * B_tile[k][threadIdx.x];
             }
+            temp_values[coarse_step] += temp;
             __syncthreads();
         }
     }

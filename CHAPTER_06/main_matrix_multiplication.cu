@@ -1,7 +1,7 @@
 #define BLOCK 32
-#define TEST_SIZE 32
-#define REPS 5
-#define WARM_UP 2
+#define MAX_SIZE 3072
+#define REPS 3
+#define WARM_UP 1
 
 #include "../UTILS/utils.h"
 #include "../UTILS/matrix_multiplication.h"
@@ -9,8 +9,6 @@
 #include "matrix_multiplication_tiled.cuh"
 #include "matrix_multiplication_coarsed.cuh"
 
-// #include <vector>
-// #include <unordered_map>
 #include <cmath>
 #include <fstream>
 #include <functional>
@@ -30,6 +28,9 @@ int main() {
     float time_avg = 0.0;
     float time = 0.0;
 
+    dim3 grid_size;
+    dim3 block_size;
+
     int N;
     int K;
     int M;
@@ -39,6 +40,7 @@ int main() {
     int device = 0;
     int threa_per_sm;
     int sms;
+
     cudaDeviceGetAttribute(&threa_per_sm, cudaDevAttrMaxThreadsPerMultiProcessor, device);
     cudaDeviceGetAttribute(&sms, cudaDevAttrMultiProcessorCount, device);
 
@@ -48,16 +50,21 @@ int main() {
     float *A_h, *B_h, *C_h, *A_d, *B_d, *C_d, *C_t;
     uti::IntGenerator gen(0, 10);
 
-    for(int test = 128; test <= 1920; test += 128) {
+    std::string file_name = "./data/mul_coarsed_data2.csv";
+    std::fstream file(file_name, std::fstream::in | std::fstream::out | std::fstream::app);
+    file << "size;";
+    for(int i = 0; i < REPS; ++i) { file << "test_" << i << ";"; }
+    file << "avg\n";
+
+    for(int test = 64; test <= MAX_SIZE; test += 64) {
+        file << test << ";";
 
         N = test;
         K = N;
         M = N;
 
         cfactor = std::ceil((float) (1.0 * N * M) / (sms * threa_per_sm));
-        
-        dim3 grid_size((M + cfactor*BLOCK-1) / (cfactor*BLOCK), (N+BLOCK-1) / BLOCK, 1);
-        dim3 block_size(BLOCK, BLOCK, 1);
+        cfactor = 16;
 
         A_h = new float[N * K];
         B_h = new float[K * M];
@@ -79,16 +86,12 @@ int main() {
             cudaMemcpy(A_d, A_h, N * K * sizeof(float), cudaMemcpyHostToDevice);
             cudaMemcpy(B_d, B_h, K * M * sizeof(float), cudaMemcpyHostToDevice);
             
-            // coarsed multiplication
-            // grid_size  = dim3((M + cfactor*BLOCK-1) / (cfactor*BLOCK), (N+BLOCK-1) / BLOCK, 1);
-            // block_size = dim3(BLOCK, BLOCK, 1);
-
-            grid_size  = dim3((M + BLOCK-1) / BLOCK, (N+BLOCK-1) / BLOCK, 1);
+            grid_size  = dim3((M + cfactor*BLOCK-1) / (cfactor*BLOCK), (N+BLOCK-1) / BLOCK, 1);
             block_size = dim3(BLOCK, BLOCK, 1);
 
             clear_cache();
             cudaMemset(C_d, 0, N * M * sizeof(float));
-            time = uti::elapsed_time([&] {matrix_multiplication<<<grid_size, block_size>>>(A_d, B_d, C_d, N, K, M);});
+            time = uti::elapsed_time([&] {matrix_multiplication_coarsed<<<grid_size, block_size>>>(A_d, B_d, C_d, N, K, M, cfactor);});
             cudaMemcpy(C_h, C_d, N * M * sizeof(float), cudaMemcpyDeviceToHost);
 
             if(repetition >= WARM_UP) {
@@ -100,8 +103,11 @@ int main() {
                 matrix_multiplication_cpu(A_h, B_h, C_t, N, K, M);
                 uti::check_abs_error(C_h, C_t, N*M);
             }
+
+            file << time << ";";
         }
         time_avg = time_sum / REPS;
+        file << time_avg << "\n";
         printf("| AvgTime: %7.3f ms\n", time_avg);
 
         delete A_h;
@@ -113,10 +119,8 @@ int main() {
         cudaFree(C_d);
     }
 
-    // saving data to file
-    // std::ostream file("./data/data.csv");
-    // file.close();
-
+    // closing file
+    file.close();
 
     return 0;
 }
