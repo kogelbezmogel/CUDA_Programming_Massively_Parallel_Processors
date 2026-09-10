@@ -24,5 +24,10 @@ if __name__ == "__main__":
 
     data = pd.concat(datas, axis=1)
     data.plot()
-    plt.show()
+
+    plt.xlabel("Matrix Size (N x N)")
+    plt.ylabel("Time (ms)")
+    plt.title("Algorithms Comparison")
+    plt.grid(True)
+    plt.savefig("./plot.png")
         

@@ -1,11 +1,11 @@
-#include "convolution2D_const_memory.cuh"
+
+#include "convolution2D_simple.cuh"
 
 #define FILTER_R 1
 #define BLOCK 32
 
-__constant__ float F[2*FILTER_R + 1][2*FILTER_R + 1];
 
-void __global__ simple_convolution2D_const_memory(float *A, float *B, int N, int M, int r) {
+void __global__ simple_convolution2D(float *A, float *F, float *B, int N, int M, int r) {
     
     int col = blockIdx.x * blockDim.x + threadIdx.x;
     int row = blockIdx.y * blockDim.y + threadIdx.y;
@@ -14,7 +14,7 @@ void __global__ simple_convolution2D_const_memory(float *A, float *B, int N, int
     for(int i = 0; i < 2*r+1; ++i) {
         for(int j = 0; j < 2*r+1; ++j) {
             if(col-r+j >= 0 && col-r+j < M && row-r+i >= 0 && row-r+i < N) {
-                val += F[i][j] * A[(row-r+i) * M + (col-r+j)];
+                val += F[i*(2*r+1) + j] * A[(row-r+i) * M + (col-r+j)];
             }
         }
     }

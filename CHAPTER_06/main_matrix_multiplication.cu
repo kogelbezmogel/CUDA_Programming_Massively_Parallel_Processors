@@ -96,6 +96,7 @@ int main() {
 
             if(repetition >= WARM_UP) {
                 printf("%7.3fms ", time);
+                file << time << ";";
                 time_sum += time;
             }
 
@@ -103,9 +104,8 @@ int main() {
                 matrix_multiplication_cpu(A_h, B_h, C_t, N, K, M);
                 uti::check_abs_error(C_h, C_t, N*M);
             }
-
-            file << time << ";";
         }
+
         time_avg = time_sum / REPS;
         file << time_avg << "\n";
         printf("| AvgTime: %7.3f ms\n", time_avg);

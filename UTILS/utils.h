@@ -59,6 +59,16 @@ namespace uti {
         assert(err <= max_error);
     }
 
+    void __host__ __device__ print_matrix(float *A, int N, int M) {
+    for(int i = 0; i < N; ++i) {
+        printf("[");
+        for(int j = 0; j < M-1; ++j) {
+            printf("%4.1f ", A[i*M + j]);
+        }
+        printf("%4.1f ]\n", A[i*M + M-1]);
+        }
+    }
+
 
     void print_GPU_info() {
         int device = 0;
